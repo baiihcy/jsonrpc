@@ -1,6 +1,7 @@
 package jsonrpc
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -13,8 +14,9 @@ func TestJsonrpc(t *testing.T) {
 	}
 
 	s := NewServer(DefaultServerOptions)
+	defer s.Close()
 	go s.ListenAndServe("tcp", ":55667", nil)
-	s.Handle("testResult", func(ctx *Context) {
+	s.Handle("testResult", func(ctx *Context) error {
 		var paramA float64
 		var paramB string
 		assert.False(t, ctx.Req.ParamField2("A", &paramB))
@@ -25,9 +27,14 @@ func TestJsonrpc(t *testing.T) {
 
 		t.Log(ctx.Req)
 		ctx.Result(&TestEntity{-11, "result"})
+		return nil
 	})
-	s.Handle("testError", func(ctx *Context) {
+	s.Handle("testError", func(ctx *Context) error {
 		ctx.InternalError("test error", 999)
+		return nil
+	})
+	s.Handle("testInternalError", func(ctx *Context) error {
+		return errors.New("internal error")
 	})
 
 	c := NewClient(DefaultClientOptions)
@@ -54,4 +61,11 @@ func TestJsonrpc(t *testing.T) {
 		t.Error("Request testError fail:", err)
 	}
 	assert.NotNil(t, resp.Error)
+
+	resp, err = c.Request("testInternalError", nil)
+	if err != nil {
+		t.Error("Request testInternalError fail:", err)
+	}
+	assert.NotNil(t, resp.Error)
+	assert.Equal(t, "internal error", resp.Error.Message)
 }

@@ -89,7 +89,9 @@ func (s *Server) ConnHandler(conn net.Conn) {
 		ctx.ResetResponse()
 		if err := json.Unmarshal(bs, &req); err == nil {
 			if handler, ok := s.handlers[req.Method]; ok {
-				handler(ctx)
+				if err := handler(ctx); err != nil {
+					ctx.InternalError(err.Error(), nil)
+				}
 			} else {
 				log.Println("Method not found:", ctx.Req.Method)
 				ctx.Error(ErrorCodeMethodNotFound, "Method not found:" + req.Method, nil)
