@@ -1,0 +1,57 @@
+package jsonrpc
+
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+
+func TestJsonrpc(t *testing.T) {
+	type TestEntity struct {
+		A int
+		B string
+	}
+
+	s := NewServer(DefaultServerOptions)
+	go s.ListenAndServe("tcp", ":55667", nil)
+	s.Handle("testResult", func(ctx *Context) {
+		var paramA float64
+		var paramB string
+		assert.False(t, ctx.Req.ParamField2("A", &paramB))
+		assert.True(t, ctx.Req.ParamField2("A", &paramA), "Param A not found or not a number")
+		assert.True(t, ctx.Req.ParamField2("B", &paramB), "Param B not found or not a string")
+		assert.Equal(t, 11., paramA)
+		assert.Equal(t, "params", paramB)
+
+		t.Log(ctx.Req)
+		ctx.Result(&TestEntity{-11, "result"})
+	})
+	s.Handle("testError", func(ctx *Context) {
+		ctx.InternalError("test error", 999)
+	})
+
+	c := NewClient(DefaultClientOptions)
+	if err := c.Dial("tcp", "127.0.0.1:55667"); err != nil {
+		t.Fatal("Connect to server fail:", err)
+	}
+
+	var resultA int
+	var resultB string
+	resp, err := c.Request("testResult", TestEntity{11, "params"})
+	if err != nil {
+		t.Error("Request testResult fail:", err)
+	}
+	assert.Nil(t, resp.Error)
+	assert.False(t, resp.ResultField2("A", &resultB))
+	assert.True(t, resp.ResultField2("A", &resultA), "Result field A not found or not a number")
+	assert.True(t, resp.ResultField2("B", &resultB), "Result field B not found or not a string")
+	assert.Equal(t, -11, resultA)
+	assert.Equal(t, "result", resultB)
+	t.Logf("%+v\n", resp)
+
+	resp, err = c.Request("testError", nil)
+	if err != nil {
+		t.Error("Request testError fail:", err)
+	}
+	assert.NotNil(t, resp.Error)
+}
