@@ -1,4 +1,4 @@
-module jsonrpc
+module github.com/baiihcy/jsonrpc
 
 go 1.12
 
