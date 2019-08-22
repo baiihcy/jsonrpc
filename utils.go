@@ -3,6 +3,7 @@ package jsonrpc
 import (
 	"github.com/danhper/structomap"
 	"reflect"
+	"time"
 )
 
 var structSerializer = structomap.New().PickAll()
@@ -49,6 +50,13 @@ func getJsonField(m JsonMap, name string, out interface{}) bool {
 		if n, ok := val.(float64); ok {
 			*out = uint64(n)
 			ret = true
+		}
+	case *time.Time:
+		if s, ok := val.(string); ok {
+			if t, err := time.Parse(time.RFC3339, s); err == nil {
+				*out = t
+				ret = true
+			}
 		}
 	}
 	return ret

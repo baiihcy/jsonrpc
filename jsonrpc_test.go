@@ -4,29 +4,33 @@ import (
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
-
 
 func TestJsonrpc(t *testing.T) {
 	type TestEntity struct {
 		A int
 		B string
+		C time.Time
 	}
 
+	now := time.Now()
 	s := NewServer(DefaultServerOptions)
 	defer s.Close()
 	go s.ListenAndServe("tcp", ":55667", nil)
 	s.Handle("testResult", func(ctx *Context) error {
 		var paramA float64
 		var paramB string
+		var paramC time.Time
 		assert.False(t, ctx.Req.ParamField2("A", &paramB))
 		assert.True(t, ctx.Req.ParamField2("A", &paramA), "Param A not found or not a number")
 		assert.True(t, ctx.Req.ParamField2("B", &paramB), "Param B not found or not a string")
+		assert.True(t, ctx.Req.ParamField2("C", &paramC), "Param C not found or not a time")
 		assert.Equal(t, 11., paramA)
 		assert.Equal(t, "params", paramB)
 
 		t.Log(ctx.Req)
-		ctx.Result(&TestEntity{-11, "result"})
+		ctx.Result(&TestEntity{-11, "result", now})
 		return nil
 	})
 	s.Handle("testError", func(ctx *Context) error {
@@ -44,7 +48,8 @@ func TestJsonrpc(t *testing.T) {
 
 	var resultA int
 	var resultB string
-	resp, err := c.Request("testResult", TestEntity{11, "params"})
+	var resultC time.Time
+	resp, err := c.Request("testResult", TestEntity{11, "params", now})
 	if err != nil {
 		t.Error("Request testResult fail:", err)
 	}
@@ -52,6 +57,7 @@ func TestJsonrpc(t *testing.T) {
 	assert.False(t, resp.ResultField2("A", &resultB))
 	assert.True(t, resp.ResultField2("A", &resultA), "Result field A not found or not a number")
 	assert.True(t, resp.ResultField2("B", &resultB), "Result field B not found or not a string")
+	assert.True(t, resp.ResultField2("C", &resultC), "Result field C not found or not a time")
 	assert.Equal(t, -11, resultA)
 	assert.Equal(t, "result", resultB)
 	t.Logf("%+v\n", resp)
