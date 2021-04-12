@@ -22,7 +22,7 @@ func TestJsonrpc(t *testing.T) {
 		var paramA float64
 		var paramB string
 		var paramC time.Time
-		assert.False(t, ctx.Req.ParamField2("A", &paramB))
+		assert.False(t, ctx.Req.ParamField2("B", &paramA))
 		assert.True(t, ctx.Req.ParamField2("A", &paramA), "Param A not found or not a number")
 		assert.True(t, ctx.Req.ParamField2("B", &paramB), "Param B not found or not a string")
 		assert.True(t, ctx.Req.ParamField2("C", &paramC), "Param C not found or not a time")
@@ -54,7 +54,7 @@ func TestJsonrpc(t *testing.T) {
 		t.Error("Request testResult fail:", err)
 	}
 	assert.Nil(t, resp.Error)
-	assert.False(t, resp.ResultField2("A", &resultB))
+	assert.False(t, resp.ResultField2("B", &resultA))
 	assert.True(t, resp.ResultField2("A", &resultA), "Result field A not found or not a number")
 	assert.True(t, resp.ResultField2("B", &resultB), "Result field B not found or not a string")
 	assert.True(t, resp.ResultField2("C", &resultC), "Result field C not found or not a time")
